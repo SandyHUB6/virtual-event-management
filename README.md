@@ -71,3 +71,36 @@ This application currently uses in-memory arrays for storing users and events. A
   * **Code**: `400 Bad Request` (Missing email or password fields, or invalid field types)
   * **Code**: `401 Unauthorized` (Invalid email or password — generic message for security)
 
+## Authentication
+
+Protected endpoints require JWT Authentication. The flow works as follows:
+1. Register a user via `POST /register`.
+2. Login via `POST /login` using registered credentials to receive a signed JWT token.
+3. Attach this token to subsequent requests using the `Authorization` header:
+   ```
+   Authorization: Bearer <token>
+   ```
+
+### Protected Verification Route (Temporary)
+* **Endpoint**: `GET /protected`
+* **Purpose**: Verify authentication middleware setup. Requires a valid JWT token.
+* **Headers**:
+  * `Authorization: Bearer <token>`
+* **Success Response**:
+  * **Code**: `200 OK`
+  * **Content**:
+    ```json
+    {
+      "success": true,
+      "message": "You have access to this protected route",
+      "user": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "email": "sandy@example.com",
+        "role": "attendee"
+      }
+    }
+    ```
+* **Error Responses**:
+  * **Code**: `401 Unauthorized` (Authentication token is required / Invalid or expired authentication token)
+
+
