@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 
 // Register API Routes
-app.use('/register', authRoutes);
+app.use('/', authRoutes);
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {

@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { users } = require('../data/store');
 const generateId = require('../utils/generateId');
 
@@ -110,6 +111,100 @@ async function registerUser(req, res) {
   }
 }
 
+/**
+ * Authenticate a user and generate a JWT token.
+ * Mount endpoint: POST /login
+ */
+async function loginUser(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Validate existence of both fields
+    if (email === undefined || password === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+
+    // Validate type of fields
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password must be strings"
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if empty values were passed
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+
+    // 2. Find user in-memory
+    const user = users.find(u => u.email === normalizedEmail);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    // 3. Compare password with stored hash
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    // 4. Verify JWT_SECRET is present
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("JWT_SECRET environment variable is missing.");
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while processing login request."
+      });
+    }
+
+    // 5. Generate JWT token (expires in 1 hour)
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      jwtSecret,
+      { expiresIn: '1h' }
+    );
+
+    // 6. Return response
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while processing login request."
+    });
+  }
+}
+
 module.exports = {
-  registerUser
+  registerUser,
+  loginUser
 };

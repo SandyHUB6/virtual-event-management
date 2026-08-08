@@ -151,3 +151,113 @@ describe('POST /register', () => {
     expect(users.length).toBe(0);
   });
 });
+
+describe('POST /login', () => {
+  beforeEach(async () => {
+    // Clear users and seed a default user for testing login
+    users.length = 0;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password123', salt);
+    users.push({
+      id: 'user-uuid-123',
+      name: 'Sandy',
+      email: 'sandy@example.com',
+      password: hashedPassword,
+      role: 'attendee',
+      createdAt: new Date().toISOString()
+    });
+  });
+
+  it('should successfully log in with valid credentials and return status 200 with a token', async () => {
+    const res = await request(app)
+      .post('/login')
+      .send({
+        email: 'sandy@example.com',
+        password: 'password123'
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.message).toBe('Login successful');
+    expect(res.body.token).toBeDefined();
+    
+    // Check JWT payload signature structure
+    const tokenParts = res.body.token.split('.');
+    expect(tokenParts.length).toBe(3);
+
+    expect(res.body.user).toBeDefined();
+    expect(res.body.user.id).toBe('user-uuid-123');
+    expect(res.body.user.name).toBe('Sandy');
+    expect(res.body.user.email).toBe('sandy@example.com');
+    expect(res.body.user.role).toBe('attendee');
+    expect(res.body.user.password).toBeUndefined();
+  });
+
+  it('should support case-insensitive email matching during login', async () => {
+    const res = await request(app)
+      .post('/login')
+      .send({
+        email: '  SANDY@ExAmPlE.CoM  ',
+        password: 'password123'
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user.email).toBe('sandy@example.com');
+  });
+
+  it('should return 401 when password is wrong', async () => {
+    const res = await request(app)
+      .post('/login')
+      .send({
+        email: 'sandy@example.com',
+        password: 'wrongpassword'
+      });
+
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Invalid email or password');
+    expect(res.body.token).toBeUndefined();
+  });
+
+  it('should return 401 when email does not exist', async () => {
+    const res = await request(app)
+      .post('/login')
+      .send({
+        email: 'unknown@example.com',
+        password: 'password123'
+      });
+
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Invalid email or password');
+    expect(res.body.token).toBeUndefined();
+  });
+
+  it('should return 400 when email or password is missing', async () => {
+    const res = await request(app)
+      .post('/login')
+      .send({
+        email: 'sandy@example.com'
+        // password missing
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('Email and password are required');
+  });
+
+  it('should return 400 when email or password is empty string', async () => {
+    const res = await request(app)
+      .post('/login')
+      .send({
+        email: '   ',
+        password: 'password123'
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('Email and password are required');
+  });
+});
+

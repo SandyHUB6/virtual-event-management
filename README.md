@@ -39,3 +39,35 @@ This application currently uses in-memory arrays for storing users and events. A
 * **Error Responses**:
   * **Code**: `400 Bad Request` (Missing required fields, invalid field types, empty values, invalid role, or password length < 6 characters)
   * **Code**: `409 Conflict` (User with this email already exists)
+
+### 2. User Login
+* **Endpoint**: `POST /login`
+* **Purpose**: Authenticate a user and generate a JWT token.
+* **Request Body**:
+  ```json
+  {
+    "email": "sandy@example.com",
+    "password": "password123"
+  }
+  ```
+* **Success Response**:
+  * **Code**: `200 OK`
+  * **Content**:
+    ```json
+    {
+      "success": true,
+      "message": "Login successful",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature",
+      "user": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "name": "Sandy",
+        "email": "sandy@example.com",
+        "role": "attendee"
+      }
+    }
+    ```
+* **Token Expiration**: The returned JWT token is valid for 1 hour (`expiresIn: "1h"`).
+* **Error Responses**:
+  * **Code**: `400 Bad Request` (Missing email or password fields, or invalid field types)
+  * **Code**: `401 Unauthorized` (Invalid email or password — generic message for security)
+
