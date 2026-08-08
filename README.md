@@ -318,6 +318,95 @@ The application uses role-based authorization to restrict access to endpoints ba
   * **Code 403**: Forbidden (Attendee trying to delete, or Organizer who does not own the event).
   * **Code 404**: Event not found.
 
+### 6. Register For Event
+* **Endpoint**: `POST /events/:id/register`
+* **Authentication**: Required (JWT Bearer Token)
+* **Role**: `attendee`
+* **Request Body**: None (The identity is derived from the verified JWT)
+* **Success Response (Code 201)**:
+  ```json
+  {
+    "success": true,
+    "message": "Successfully registered for the event",
+    "registration": {
+      "eventId": "event-uuid",
+      "userId": "attendee-uuid"
+    }
+  }
+  ```
+* **Error Responses**:
+  * **Code 401**: Unauthorized.
+  * **Code 403**: Forbidden (Organizer trying to register).
+  * **Code 404**: Event not found.
+  * **Code 409**: Conflict (Attendee is already registered for this event):
+    ```json
+    {
+      "success": false,
+      "message": "You are already registered for this event"
+    }
+    ```
+
+### 7. Get My Registered Events
+* **Endpoint**: `GET /my-events`
+* **Authentication**: Required (JWT Bearer Token)
+* **Role**: `attendee`
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "count": 1,
+    "events": [
+      {
+        "id": "e23b7ad9-2293-479e-af28-e1cb6f64d35c",
+        "title": "Node.js Workshop",
+        "date": "2026-08-20",
+        "time": "18:00",
+        "description": "Backend development workshop",
+        "organizerId": "organizer-uuid",
+        "participants": ["attendee-uuid"],
+        "createdAt": "2026-08-08T17:42:12.123Z",
+        "updatedAt": "2026-08-08T17:42:12.123Z"
+      }
+    ]
+  }
+  ```
+* **Error Responses**:
+  * **Code 401**: Unauthorized.
+  * **Code 403**: Forbidden (Only attendees can access).
+
+### 8. Get Event Participants List
+* **Endpoint**: `GET /events/:id/participants`
+* **Authentication**: Required (JWT Bearer Token)
+* **Role**: `organizer`
+* **Ownership**: Organizers can only view the participant list of events they created.
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "eventId": "event-uuid",
+    "count": 1,
+    "participants": [
+      {
+        "id": "attendee-uuid",
+        "name": "Attendee User",
+        "email": "attendee@example.com",
+        "role": "attendee"
+      }
+    ]
+  }
+  ```
+* **Error Responses**:
+  * **Code 401**: Unauthorized.
+  * **Code 403**: Forbidden (Attendee trying to view participants, or Organizer who does not own the event):
+    ```json
+    {
+      "success": false,
+      "message": "You are not authorized to view participants for this event"
+    }
+    ```
+  * **Code 404**: Event not found.
+
+
 
 
 

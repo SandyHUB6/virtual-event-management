@@ -1,4 +1,4 @@
-const { events } = require('../data/store');
+const { events, users } = require('../data/store');
 const generateId = require('../utils/generateId');
 
 // Date validation regex (YYYY-MM-DD)
@@ -306,10 +306,129 @@ function deleteEvent(req, res) {
   }
 }
 
+/**
+ * Register the authenticated attendee user for an event.
+ * POST /events/:id/register
+ */
+function registerForEvent(req, res) {
+  try {
+    const { id } = req.params;
+    const event = events.find(e => e.id === id);
+
+    // 1. Check if event exists
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+
+    // 2. Check if attendee is already registered
+    const isAlreadyRegistered = event.participants.includes(req.user.id);
+    if (isAlreadyRegistered) {
+      return res.status(409).json({
+        success: false,
+        message: "You are already registered for this event"
+      });
+    }
+
+    // 3. Register user ID
+    event.participants.push(req.user.id);
+
+    return res.status(201).json({
+      success: true,
+      message: "Successfully registered for the event",
+      registration: {
+        eventId: event.id,
+        userId: req.user.id
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while registering for the event."
+    });
+  }
+}
+
+/**
+ * Get events registered by the authenticated attendee.
+ * GET /my-events
+ */
+function getMyEvents(req, res) {
+  try {
+    const filteredEvents = events.filter(e => e.participants.includes(req.user.id));
+    return res.status(200).json({
+      success: true,
+      count: filteredEvents.length,
+      events: filteredEvents
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while retrieving registered events."
+    });
+  }
+}
+
+/**
+ * Get safe participant list for an event.
+ * GET /events/:id/participants
+ */
+function getEventParticipants(req, res) {
+  try {
+    const { id } = req.params;
+    const event = events.find(e => e.id === id);
+
+    // 1. Check if event exists
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+
+    // 2. Verify event ownership
+    if (event.organizerId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view participants for this event"
+      });
+    }
+
+    // 3. Find participant users details (excluding password details)
+    const participantsList = event.participants.map(userId => {
+      const u = users.find(user => user.id === userId);
+      return u ? {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role
+      } : null;
+    }).filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      eventId: event.id,
+      count: participantsList.length,
+      participants: participantsList
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while retrieving event participants."
+    });
+  }
+}
+
 module.exports = {
   createEvent,
   getEvents,
   getEventById,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  registerForEvent,
+  getMyEvents,
+  getEventParticipants
 };
+

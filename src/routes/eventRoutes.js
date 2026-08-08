@@ -4,7 +4,9 @@ const {
   getEvents,
   getEventById,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  registerForEvent,
+  getEventParticipants
 } = require('../controllers/eventController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
@@ -19,5 +21,11 @@ router.get('/:id', getEventById);
 router.post('/', authenticateToken, authorizeRoles('organizer'), createEvent);
 router.put('/:id', authenticateToken, authorizeRoles('organizer'), updateEvent);
 router.delete('/:id', authenticateToken, authorizeRoles('organizer'), deleteEvent);
+
+// Protected endpoint for event registration (Attendee only)
+router.post('/:id/register', authenticateToken, authorizeRoles('attendee'), registerForEvent);
+
+// Protected endpoint to view event participants (Organizer only)
+router.get('/:id/participants', authenticateToken, authorizeRoles('organizer'), getEventParticipants);
 
 module.exports = router;

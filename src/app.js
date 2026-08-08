@@ -5,6 +5,8 @@ const eventRoutes = require('./routes/eventRoutes');
 const { authenticateToken } = require('./middleware/authMiddleware');
 const { authorizeRoles } = require('./middleware/roleMiddleware');
 
+const { getMyEvents } = require('./controllers/eventController');
+
 // Load environment variables from .env file
 dotenv.config();
 
@@ -16,6 +18,9 @@ app.use(express.json());
 // Register API Routes
 app.use('/', authRoutes);
 app.use('/events', eventRoutes);
+
+// Attendee registered events endpoint
+app.get('/my-events', authenticateToken, authorizeRoles('attendee'), getMyEvents);
 
 // Protected test endpoint (verification route)
 app.get('/protected', authenticateToken, (req, res) => {
