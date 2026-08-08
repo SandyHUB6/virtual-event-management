@@ -462,6 +462,25 @@ The application uses standard HTTP status codes:
 * **409 Conflict**: Data conflict (duplicate user email on signup, or duplicate attendee registration for the same event).
 * **500 Internal Server Error**: Unexpected runtime server errors.
 
+## Testing
+
+The project contains a comprehensive automated test suite (66 specifications) built using Jest and Supertest to verify authentication, event CRUD, and participant/registration management.
+
+### Run all tests
+```bash
+npm run test
+```
+
+### Run tests in watch mode
+```bash
+npm run test:watch
+```
+
+* **Test Isolation**: Data is automatically reset between test executions (`beforeEach()`) to prevent state leakage since the app uses in-memory storage.
+* **Email Mocking**: Email delivery is mocked during testing. A mock is also implemented to confirm that registration stays successful even if email dispatch fails.
+* **Direct Server Mock**: Tests hook directly into the Express application instance without binding to a physical HTTP port, ensuring fast, isolated test execution.
+
+
 
 
 
