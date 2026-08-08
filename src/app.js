@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 const { authenticateToken } = require('./middleware/authMiddleware');
 const { authorizeRoles } = require('./middleware/roleMiddleware');
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 // Register API Routes
 app.use('/', authRoutes);
+app.use('/events', eventRoutes);
 
 // Protected test endpoint (verification route)
 app.get('/protected', authenticateToken, (req, res) => {

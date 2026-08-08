@@ -167,5 +167,157 @@ The application uses role-based authorization to restrict access to endpoints ba
     }
     ```
 
+## Event API Endpoints
+
+### 1. Get All Events
+* **Endpoint**: `GET /events`
+* **Authentication**: None (Public)
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "count": 1,
+    "events": [
+      {
+        "id": "e23b7ad9-2293-479e-af28-e1cb6f64d35c",
+        "title": "Node.js Workshop",
+        "date": "2026-08-20",
+        "time": "18:00",
+        "description": "Backend development workshop",
+        "organizerId": "organizer-uuid",
+        "participants": [],
+        "createdAt": "2026-08-08T17:42:12.123Z",
+        "updatedAt": "2026-08-08T17:42:12.123Z"
+      }
+    ]
+  }
+  ```
+
+### 2. Get Event By ID
+* **Endpoint**: `GET /events/:id`
+* **Authentication**: None (Public)
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "event": {
+      "id": "e23b7ad9-2293-479e-af28-e1cb6f64d35c",
+      "title": "Node.js Workshop",
+      "date": "2026-08-20",
+      "time": "18:00",
+      "description": "Backend development workshop",
+      "organizerId": "organizer-uuid",
+      "participants": [],
+      "createdAt": "2026-08-08T17:42:12.123Z",
+      "updatedAt": "2026-08-08T17:42:12.123Z"
+    }
+  }
+  ```
+* **Error Response (Code 404)**:
+  ```json
+  {
+    "success": false,
+    "message": "Event not found"
+  }
+  ```
+
+### 3. Create Event
+* **Endpoint**: `POST /events`
+* **Authentication**: Required (JWT Bearer Token)
+* **Role**: `organizer`
+* **Request Body**:
+  ```json
+  {
+    "title": "Node.js Workshop",
+    "date": "2026-08-20",
+    "time": "18:00",
+    "description": "Backend development workshop"
+  }
+  ```
+  * **date format**: `YYYY-MM-DD`
+  * **time format**: `HH:mm` (24-hour format)
+* **Success Response (Code 201)**:
+  ```json
+  {
+    "success": true,
+    "message": "Event created successfully",
+    "event": {
+      "id": "e23b7ad9-2293-479e-af28-e1cb6f64d35c",
+      "title": "Node.js Workshop",
+      "date": "2026-08-20",
+      "time": "18:00",
+      "description": "Backend development workshop",
+      "organizerId": "organizer-uuid",
+      "participants": [],
+      "createdAt": "2026-08-08T17:42:12.123Z",
+      "updatedAt": "2026-08-08T17:42:12.123Z"
+    }
+  }
+  ```
+* **Error Responses**:
+  * **Code 400**: Missing required fields or invalid date/time format.
+  * **Code 401**: Unauthorized.
+  * **Code 403**: Forbidden (Attendee trying to create event).
+
+### 4. Update Event
+* **Endpoint**: `PUT /events/:id`
+* **Authentication**: Required (JWT Bearer Token)
+* **Role**: `organizer`
+* **Ownership**: Organizers can only update events they created.
+* **Request Body (Allows Partial Updates)**:
+  ```json
+  {
+    "title": "Advanced Node.js Workshop",
+    "time": "19:00"
+  }
+  ```
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "message": "Event updated successfully",
+    "event": {
+      "id": "e23b7ad9-2293-479e-af28-e1cb6f64d35c",
+      "title": "Advanced Node.js Workshop",
+      "date": "2026-08-20",
+      "time": "19:00",
+      "description": "Backend development workshop",
+      "organizerId": "organizer-uuid",
+      "participants": [],
+      "createdAt": "2026-08-08T17:42:12.123Z",
+      "updatedAt": "2026-08-08T17:45:00.000Z"
+    }
+  }
+  ```
+* **Error Responses**:
+  * **Code 400**: Empty fields or invalid date/time update values.
+  * **Code 401**: Unauthorized.
+  * **Code 403**: Forbidden (Attendee trying to update, or Organizer who does not own the event).
+    ```json
+    {
+      "success": false,
+      "message": "You are not authorized to modify this event"
+    }
+    ```
+  * **Code 404**: Event not found.
+
+### 5. Delete Event
+* **Endpoint**: `DELETE /events/:id`
+* **Authentication**: Required (JWT Bearer Token)
+* **Role**: `organizer`
+* **Ownership**: Organizers can only delete events they created.
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "message": "Event deleted successfully"
+  }
+  ```
+* **Error Responses**:
+  * **Code 401**: Unauthorized.
+  * **Code 403**: Forbidden (Attendee trying to delete, or Organizer who does not own the event).
+  * **Code 404**: Event not found.
+
+
 
 
