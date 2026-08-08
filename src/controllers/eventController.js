@@ -1,28 +1,11 @@
 const { events, users } = require('../data/store');
 const generateId = require('../utils/generateId');
 const { sendRegistrationEmail } = require('../services/emailService');
-
-// Date validation regex (YYYY-MM-DD)
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-// Time validation regex (24-hour format HH:mm)
-const TIME_REGEX = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
-
-/**
- * Helper to validate YYYY-MM-DD date format and validity
- */
-function isValidDate(dateStr) {
-  if (!DATE_REGEX.test(dateStr)) return false;
-  const parsed = new Date(dateStr);
-  return !isNaN(parsed.getTime());
-}
-
-/**
- * Helper to validate HH:mm time format
- */
-function isValidTime(timeStr) {
-  return TIME_REGEX.test(timeStr);
-}
+const {
+  isNonEmptyString,
+  isValidDate,
+  isValidTime
+} = require('../utils/validation');
 
 /**
  * Create a new event.
@@ -32,12 +15,12 @@ function createEvent(req, res) {
   try {
     const { title, date, time, description } = req.body;
 
-    // 1. Validate required fields presence
+    // 1. Validate required fields presence and types
     if (
-      title === undefined ||
-      date === undefined ||
-      time === undefined ||
-      description === undefined
+      !isNonEmptyString(title) ||
+      !isNonEmptyString(date) ||
+      !isNonEmptyString(time) ||
+      !isNonEmptyString(description)
     ) {
       return res.status(400).json({
         success: false,
@@ -45,42 +28,16 @@ function createEvent(req, res) {
       });
     }
 
-    // Validate type of fields
-    if (
-      typeof title !== 'string' ||
-      typeof date !== 'string' ||
-      typeof time !== 'string' ||
-      typeof description !== 'string'
-    ) {
+    // 2. Validate date format and calendar validity
+    if (!isValidDate(date)) {
       return res.status(400).json({
         success: false,
-        message: "Title, date, time and description must be strings"
-      });
-    }
-
-    const trimmedTitle = title.trim();
-    const trimmedDate = date.trim();
-    const trimmedTime = time.trim();
-    const trimmedDescription = description.trim();
-
-    // Check for empty values
-    if (!trimmedTitle || !trimmedDate || !trimmedTime || !trimmedDescription) {
-      return res.status(400).json({
-        success: false,
-        message: "Title, date, time and description are required"
-      });
-    }
-
-    // 2. Validate date format
-    if (!isValidDate(trimmedDate)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid date format. Expected YYYY-MM-DD"
+        message: "Invalid date format. Expected YYYY-MM-DD representing a real calendar date"
       });
     }
 
     // 3. Validate time format
-    if (!isValidTime(trimmedTime)) {
+    if (!isValidTime(time)) {
       return res.status(400).json({
         success: false,
         message: "Invalid time format. Expected HH:mm (24-hour format)"
@@ -94,10 +51,10 @@ function createEvent(req, res) {
 
     const newEvent = {
       id,
-      title: trimmedTitle,
-      date: trimmedDate,
-      time: trimmedTime,
-      description: trimmedDescription,
+      title: title.trim(),
+      date: date.trim(),
+      time: time.trim(),
+      description: description.trim(),
       organizerId: req.user.id, // Derived from JWT user context
       participants: [],
       createdAt,
@@ -195,7 +152,7 @@ function updateEvent(req, res) {
 
     // 3. Validate inputs if provided for update
     if (title !== undefined) {
-      if (typeof title !== 'string' || !title.trim()) {
+      if (!isNonEmptyString(title)) {
         return res.status(400).json({
           success: false,
           message: "Title cannot be empty"
@@ -204,7 +161,7 @@ function updateEvent(req, res) {
     }
 
     if (description !== undefined) {
-      if (typeof description !== 'string' || !description.trim()) {
+      if (!isNonEmptyString(description)) {
         return res.status(400).json({
           success: false,
           message: "Description cannot be empty"
@@ -213,30 +170,16 @@ function updateEvent(req, res) {
     }
 
     if (date !== undefined) {
-      if (typeof date !== 'string' || !date.trim()) {
+      if (!isValidDate(date)) {
         return res.status(400).json({
           success: false,
-          message: "Date cannot be empty"
-        });
-      }
-      const trimmedDate = date.trim();
-      if (!isValidDate(trimmedDate)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid date format. Expected YYYY-MM-DD"
+          message: "Invalid date format. Expected YYYY-MM-DD representing a real calendar date"
         });
       }
     }
 
     if (time !== undefined) {
-      if (typeof time !== 'string' || !time.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: "Time cannot be empty"
-        });
-      }
-      const trimmedTime = time.trim();
-      if (!isValidTime(trimmedTime)) {
+      if (!isValidTime(time)) {
         return res.status(400).json({
           success: false,
           message: "Invalid time format. Expected HH:mm (24-hour format)"
@@ -244,7 +187,7 @@ function updateEvent(req, res) {
       }
     }
 
-    // 4. Update the fields
+    // 4. Update allowed fields (forbidden fields such as id, organizerId, participants, createdAt, updatedAt are safely ignored)
     if (title !== undefined) event.title = title.trim();
     if (description !== undefined) event.description = description.trim();
     if (date !== undefined) event.date = date.trim();
@@ -467,4 +410,3 @@ module.exports = {
   getMyEvents,
   getEventParticipants
 };
-

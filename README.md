@@ -436,6 +436,33 @@ EMAIL_FROM=no-reply@example.com
 
 * **Graceful Failure Handling**: Registration remains successful even if the confirmation email delivery fails (due to incorrect credentials, socket timeouts, or missing configurations). The server logs the SMTP failure internally and returns `"emailSent": false` to the client.
 
+## Validation Rules
+
+The API enforces validation constraints across endpoints to guarantee consistency:
+
+### User Registration
+* **Name**: Required and must be a non-empty string.
+* **Email**: Required, normalized (trimmed and lowercased), and must match standard email syntax (`^[^\s@]+@[^\s@]+\.[^\s@]+$`).
+* **Password**: Required, minimum 6 characters.
+* **Role**: Required, exactly `organizer` or `attendee`.
+
+### Events Management
+* **Title**: Required (during creation), must be a non-empty string.
+* **Description**: Required (during creation), must be a non-empty string.
+* **Date**: Required (during creation), format must be `YYYY-MM-DD` and represent a valid calendar date.
+* **Time**: Required (during creation), format must be `HH:mm` (24-hour style, between `00:00` and `23:59`).
+
+## API Error Handling
+
+The application uses standard HTTP status codes:
+* **400 Bad Request**: Validation errors, empty fields, or invalid time/date format.
+* **401 Unauthorized**: Authentication token missing or invalid / incorrect login credentials.
+* **403 Forbidden**: Role-based access denied (e.g. attendee accessing event creation), or event ownership validation check failed.
+* **404 Not Found**: Endpoint route not found, or resource (event/user) does not exist.
+* **409 Conflict**: Data conflict (duplicate user email on signup, or duplicate attendee registration for the same event).
+* **500 Internal Server Error**: Unexpected runtime server errors.
+
+
 
 
 

@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { users } = require('../data/store');
 const generateId = require('../utils/generateId');
+const { isNonEmptyString, isValidEmail } = require('../utils/validation');
 
 /**
  * Register a new user (organizer or attendee).
@@ -11,16 +12,12 @@ async function registerUser(req, res) {
   try {
     const { name, email, password, role } = req.body;
 
-    // 1. Validate existence of required fields
-    if (name === undefined || email === undefined || password === undefined || role === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields. name, email, password, and role are all required."
-      });
-    }
-
-    // Validate type of fields
+    // 1. Validate required fields presence and types
     if (
+      name === undefined ||
+      email === undefined ||
+      password === undefined ||
+      role === undefined ||
       typeof name !== 'string' ||
       typeof email !== 'string' ||
       typeof password !== 'string' ||
@@ -28,7 +25,20 @@ async function registerUser(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid field types. All fields must be strings."
+        message: "Missing required fields. All fields must be strings."
+      });
+    }
+
+    // Validate empty/whitespace strings
+    if (
+      name.trim().length === 0 ||
+      email.trim().length === 0 ||
+      password.trim().length === 0 ||
+      role.trim().length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Fields cannot be empty or contain only whitespace."
       });
     }
 
@@ -36,32 +46,31 @@ async function registerUser(req, res) {
     const normalizedEmail = email.trim().toLowerCase();
     const trimmedRole = role.trim();
 
-    // Check if empty values were passed
-    if (!trimmedName || !normalizedEmail || !password || !trimmedRole) {
+    // 2. Validate email format
+    if (!isValidEmail(normalizedEmail)) {
       return res.status(400).json({
         success: false,
-        message: "Fields cannot be empty or contain only whitespace."
+        message: "Please provide a valid email address"
       });
     }
 
-    // 2. Validate role
-    const allowedRoles = ['organizer', 'attendee'];
-    if (!allowedRoles.includes(trimmedRole)) {
+    // 3. Validate role
+    if (trimmedRole !== 'organizer' && trimmedRole !== 'attendee') {
       return res.status(400).json({
         success: false,
-        message: "Invalid role. Allowed roles are: organizer, attendee."
+        message: "Invalid role. Allowed roles are: organizer, attendee"
       });
     }
 
-    // 3. Validate password length
+    // 4. Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters long."
+        message: "Password must be at least 6 characters"
       });
     }
 
-    // 4. Check whether user with the same email already exists
+    // 5. Check whether user with the same email already exists
     const emailExists = users.some(u => u.email === normalizedEmail);
     if (emailExists) {
       return res.status(409).json({
@@ -70,11 +79,11 @@ async function registerUser(req, res) {
       });
     }
 
-    // 5. Hash the password using bcryptjs with salt rounds = 10
+    // 6. Hash the password using bcryptjs with salt rounds = 10
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 6. Generate ID and create User object
+    // 7. Generate ID and create User object
     const id = generateId();
     const createdAt = new Date().toISOString();
 
@@ -87,10 +96,10 @@ async function registerUser(req, res) {
       createdAt
     };
 
-    // 7. Store user in-memory
+    // 8. Store user in-memory
     users.push(newUser);
 
-    // 8. Return response excluding password
+    // 9. Return response excluding password
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -103,7 +112,6 @@ async function registerUser(req, res) {
       }
     });
   } catch (error) {
-    // Graceful error handling, avoiding stack traces and implementation exposure
     return res.status(500).json({
       success: false,
       message: "An error occurred while processing registration request."
@@ -120,30 +128,14 @@ async function loginUser(req, res) {
     const { email, password } = req.body;
 
     // 1. Validate existence of both fields
-    if (email === undefined || password === undefined) {
+    if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required"
-      });
-    }
-
-    // Validate type of fields
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password must be strings"
       });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-
-    // Check if empty values were passed
-    if (!normalizedEmail || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required"
-      });
-    }
 
     // 2. Find user in-memory
     const user = users.find(u => u.email === normalizedEmail);

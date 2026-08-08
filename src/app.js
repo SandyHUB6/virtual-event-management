@@ -57,4 +57,14 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Import and register error handling middlewares
+const notFoundMiddleware = require('./middleware/notFoundMiddleware');
+const errorMiddleware = require('./middleware/errorMiddleware');
+
+// Not found handler
+app.use(notFoundMiddleware);
+
+// Global error handler
+app.use(errorMiddleware);
+
 module.exports = app;
