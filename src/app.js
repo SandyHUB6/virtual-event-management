@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 const { authenticateToken } = require('./middleware/authMiddleware');
+const { authorizeRoles } = require('./middleware/roleMiddleware');
 
 // Load environment variables from .env file
 dotenv.config();
@@ -19,6 +20,24 @@ app.get('/protected', authenticateToken, (req, res) => {
   res.status(200).json({
     success: true,
     message: "You have access to this protected route",
+    user: req.user
+  });
+});
+
+// Organizer-only verification route
+app.get('/organizer-only', authenticateToken, authorizeRoles('organizer'), (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Organizer access granted",
+    user: req.user
+  });
+});
+
+// Attendee-only verification route
+app.get('/attendee-only', authenticateToken, authorizeRoles('attendee'), (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Attendee access granted",
     user: req.user
   });
 });

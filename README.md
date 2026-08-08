@@ -103,4 +103,69 @@ Protected endpoints require JWT Authentication. The flow works as follows:
 * **Error Responses**:
   * **Code**: `401 Unauthorized` (Authentication token is required / Invalid or expired authentication token)
 
+## Role-Based Authorization
+
+The application uses role-based authorization to restrict access to endpoints based on the authenticated user's role, extracted from the verified JWT (`req.user.role`).
+
+### Roles Summary
+* **Organizer**: 
+  - Authorized to manage events.
+  - Allowed to create, update, and delete events.
+* **Attendee**: 
+  - Authorized to register for and view events.
+  - Not allowed to manage events (create, update, or delete).
+
+### Role Verification Routes (Temporary)
+
+#### 1. Organizer-Only Endpoint
+* **Endpoint**: `GET /organizer-only`
+* **Headers**:
+  * `Authorization: Bearer <token>`
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "message": "Organizer access granted",
+    "user": {
+      "id": "organizer-uuid",
+      "email": "organizer@example.com",
+      "role": "organizer"
+    }
+  }
+  ```
+* **Error Response (Code 403)**:
+  - If requested with an attendee token:
+    ```json
+    {
+      "success": false,
+      "message": "You are not authorized to access this resource"
+    }
+    ```
+
+#### 2. Attendee-Only Endpoint
+* **Endpoint**: `GET /attendee-only`
+* **Headers**:
+  * `Authorization: Bearer <token>`
+* **Success Response (Code 200)**:
+  ```json
+  {
+    "success": true,
+    "message": "Attendee access granted",
+    "user": {
+      "id": "attendee-uuid",
+      "email": "attendee@example.com",
+      "role": "attendee"
+    }
+  }
+  ```
+* **Error Response (Code 403)**:
+  - If requested with an organizer token:
+    ```json
+    {
+      "success": false,
+      "message": "You are not authorized to access this resource"
+    }
+    ```
+
+
 
