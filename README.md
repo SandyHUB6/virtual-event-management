@@ -324,16 +324,30 @@ The application uses role-based authorization to restrict access to endpoints ba
 * **Role**: `attendee`
 * **Request Body**: None (The identity is derived from the verified JWT)
 * **Success Response (Code 201)**:
-  ```json
-  {
-    "success": true,
-    "message": "Successfully registered for the event",
-    "registration": {
-      "eventId": "event-uuid",
-      "userId": "attendee-uuid"
+  - **With email confirmation sent successfully**:
+    ```json
+    {
+      "success": true,
+      "message": "Successfully registered for the event",
+      "registration": {
+        "eventId": "event-uuid",
+        "userId": "attendee-uuid"
+      },
+      "emailSent": true
     }
-  }
-  ```
+    ```
+  - **With email confirmation failed or not configured**:
+    ```json
+    {
+      "success": true,
+      "message": "Successfully registered for the event, but confirmation email could not be sent",
+      "registration": {
+        "eventId": "event-uuid",
+        "userId": "attendee-uuid"
+      },
+      "emailSent": false
+    }
+    ```
 * **Error Responses**:
   * **Code 401**: Unauthorized.
   * **Code 403**: Forbidden (Organizer trying to register).
@@ -405,6 +419,23 @@ The application uses role-based authorization to restrict access to endpoints ba
     }
     ```
   * **Code 404**: Event not found.
+
+## Email Notifications
+
+The application integrates with `nodemailer` to send asynchronous email notifications upon successful registration for events.
+
+### SMTP Server Configuration
+Define these SMTP configurations in your local environment `.env` file:
+```env
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=your_smtp_username
+EMAIL_PASSWORD=your_smtp_password
+EMAIL_FROM=no-reply@example.com
+```
+
+* **Graceful Failure Handling**: Registration remains successful even if the confirmation email delivery fails (due to incorrect credentials, socket timeouts, or missing configurations). The server logs the SMTP failure internally and returns `"emailSent": false` to the client.
+
 
 
 

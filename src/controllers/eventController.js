@@ -1,5 +1,6 @@
 const { events, users } = require('../data/store');
 const generateId = require('../utils/generateId');
+const { sendRegistrationEmail } = require('../services/emailService');
 
 // Date validation regex (YYYY-MM-DD)
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -310,12 +311,22 @@ function deleteEvent(req, res) {
  * Register the authenticated attendee user for an event.
  * POST /events/:id/register
  */
-function registerForEvent(req, res) {
+async function registerForEvent(req, res) {
   try {
     const { id } = req.params;
+
+    // 1. Find the complete user details in the users store
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authenticated user not found"
+      });
+    }
+
     const event = events.find(e => e.id === id);
 
-    // 1. Check if event exists
+    // 2. Check if event exists
     if (!event) {
       return res.status(404).json({
         success: false,
@@ -323,7 +334,7 @@ function registerForEvent(req, res) {
       });
     }
 
-    // 2. Check if attendee is already registered
+    // 3. Check if attendee is already registered
     const isAlreadyRegistered = event.participants.includes(req.user.id);
     if (isAlreadyRegistered) {
       return res.status(409).json({
@@ -332,17 +343,42 @@ function registerForEvent(req, res) {
       });
     }
 
-    // 3. Register user ID
+    // 4. Register user ID
     event.participants.push(req.user.id);
 
-    return res.status(201).json({
-      success: true,
-      message: "Successfully registered for the event",
-      registration: {
-        eventId: event.id,
-        userId: req.user.id
-      }
-    });
+    // 5. Asynchronously attempt to send confirmation email
+    let emailSent = false;
+    try {
+      await sendRegistrationEmail(user, event);
+      emailSent = true;
+    } catch (emailError) {
+      // Log failure locally on the server; do not fail the request or revert participant list
+      console.error(`SMTP Email dispatch failed for user ${user.email}:`, emailError.message);
+      emailSent = false;
+    }
+
+    // 6. Return appropriate response
+    if (emailSent) {
+      return res.status(201).json({
+        success: true,
+        message: "Successfully registered for the event",
+        registration: {
+          eventId: event.id,
+          userId: req.user.id
+        },
+        emailSent: true
+      });
+    } else {
+      return res.status(201).json({
+        success: true,
+        message: "Successfully registered for the event, but confirmation email could not be sent",
+        registration: {
+          eventId: event.id,
+          userId: req.user.id
+        },
+        emailSent: false
+      });
+    }
   } catch (error) {
     return res.status(500).json({
       success: false,
